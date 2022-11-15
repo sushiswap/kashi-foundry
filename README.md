@@ -13,7 +13,15 @@ make init
 
 Make a copy of `.env.defaults` to `.env` and set the desired parameters.
 
+* Uses Tenderly forks for testing, make sure to add the tenderly fork id to .env.defaults *
+
 Build and Test.
+
+```sh
+make spinup
+```
+
+In another terminal:
 
 ```sh
 make build
