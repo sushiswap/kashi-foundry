@@ -24,6 +24,9 @@ trace:
 remappings:
 	forge remappings > remappings.txt
 
+spinup:
+	anvil --fork-url https://rpc.tenderly.co/fork/${TENDERLY_FORK}  
+
 playground: FOUNDRY_TEST:=playground
 playground:
 	forge test --match-path playground/Playground.t.sol -vv
