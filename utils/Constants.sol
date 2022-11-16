@@ -23,6 +23,8 @@ contract Constants {
         setAddress("mainnet.chainlink.sushi.eth", 0xe572CeF69f43c2E488b33924AF04BDacE19079cf); // sushi/eth
         setAddress("mainnet.chainlink.usdc", 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6); // usdc/usd
         setAddress("mainnet.oracle.chainlinkV2", 0x00632CFe43d8F9f8E6cD0d39Ffa3D4fa7ec73CFB);
+        setAddress("mainnet.whale.sushi", 0xcBE6B83e77cdc011Cc18F6f0Df8444E5783ed982);
+        setAddress("mainnet.whale.usdc", 0x55FE002aefF02F77364de339a1292923A15844B8);
 
         setAddress("mainnet.kashiV1.usdc.sushi", 0x263716dEe5b74C5Baed665Cb19c6017e51296fa2);
 
