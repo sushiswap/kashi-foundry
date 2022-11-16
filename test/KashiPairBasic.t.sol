@@ -90,7 +90,73 @@ contract KashiBasicTest is BaseTest {
         uint256 sharesWithdrawn = _removeAsset(user, address(usdc), lentAmount, true);
         assertEq(sharesWithdrawn, shareLent - 1000);
     }
-    
+
+    function testKashiPairBorrow() public {
+        uint256 lentAmount = 100 gwei; // 100,000 usdc
+        uint256 collateralAmount = 100000 ether; // 100,000 sushi
+        uint256 borrowAmount = 1 gwei; // 1,000 usdc
+
+        uint256 preOracleSpot = pair.oracle().peekSpot(pair.oracleData());
+
+        // lend
+        address lender = constants.getAddress("mainnet.whale.usdc");
+        _lend(lender, usdc, lentAmount);
+        
+        // add collateral
+        address borrower = constants.getAddress("mainnet.whale.sushi");
+        _addCollateral(borrower, sushi, collateralAmount);
+
+        // borrow and withdraw out of bento
+        (uint256 part, uint256 share) = _borrow(borrower, borrowAmount, true);
+        
+        assertEq(preOracleSpot, pair.exchangeRate());
+        assertEq(borrowAmount, bentoBox.toAmount(address(usdc), share, true));
+
+        // check balance of borrower for asset borrower & withdrawn
+        // todo: checkin on why dust amount didn't follow out (there is 0.05% borrow fee, but that doesn't match up)
+        console.log(usdc.balanceOf(borrower));
+        
+        //todo: figure out how to test user's borrow part properly
+        //uint256 userBorrowPart = pair.userBorrowPart(borrower);
+
+        assertEq(pair.totalSupply(), bentoBox.toShare(address(usdc), lentAmount, false));
+        assertEq(pair.balanceOf(lender), bentoBox.toShare(address(usdc), lentAmount, false));
+        assertEq(pair.totalCollateralShare(), bentoBox.toShare(address(sushi), collateralAmount, false));
+        assertEq(pair.userCollateralShare(borrower), bentoBox.toShare(address(sushi), collateralAmount, false));
+    }
+
+
+
+    function _borrow(address account, uint256 amount, bool transferOut) private returns (uint256 part, uint256 share) {
+        vm.startPrank(account);
+
+        uint256 borrowShare = bentoBox.toShare(address(pair.asset()), amount, false);
+        (uint128 baseAsset, ) = pair.totalAsset();
+        uint128 diff = baseAsset - uint128(borrowShare);
+        if (diff < 1000) {
+            amount -= 1000;
+        }
+
+        (part, share) = pair.borrow(account, amount);
+
+        if (transferOut) {
+            bentoBox.withdraw(address(pair.asset()), account, account, 0, share);
+        }
+
+        vm.stopPrank();
+    }
+
+    function _addCollateral(address account, ERC20 collateral, uint256 amount) private {
+        vm.startPrank(account);
+        bentoBox.setMasterContractApproval(account, address(masterContract), true, 0, 0, 0);
+
+        collateral.approve(address(bentoBox), amount);
+        ( , uint256 shareIn) = bentoBox.deposit(address(collateral), account, account, amount, 0);
+
+        pair.addCollateral(account, false, shareIn);
+
+        vm.stopPrank();
+    }
 
     // todo: should prob rework this so I'm passing around pair instead of asset
     //       can help us separate so this so this can be a base tests for all types of kashi pairs
@@ -114,6 +180,18 @@ contract KashiBasicTest is BaseTest {
         vm.stopPrank();
     }
 
+    function _lend(address account, ERC20 asset, uint256 amount) private returns (uint256 fraction) {
+        vm.startPrank(account);
+        bentoBox.setMasterContractApproval(account, address(masterContract), true, 0, 0, 0);
+        
+        asset.approve(address(bentoBox), amount);
+        ( , uint256 shareIn) = bentoBox.deposit(address(asset), account, account, amount, 0);
+    
+        fraction = pair.addAsset(account, false, shareIn);
+        
+        vm.stopPrank();
+    }
+
     function _toFraction(address asset, uint256 share) private view returns (uint256 fraction){
         (uint128 baseAsset, uint128 elasticAsset) = pair.totalAsset();
         ( , uint128 elasticBorrow) = pair.totalBorrow();
@@ -122,17 +200,4 @@ contract KashiBasicTest is BaseTest {
         fraction = allShare == 0 ? share : (share * baseAsset) / allShare;
         return fraction;
     }
-
-    function _lend(address account, ERC20 asset, uint256 amount) private returns (uint256 fraction) {
-        vm.startPrank(account);
-        bentoBox.setMasterContractApproval(account, address(masterContract), true, 0, 0, 0);
-        
-        asset.approve(address(bentoBox), amount);
-        ( , uint256 shareOut) = bentoBox.deposit(address(asset), account, account, amount, 0);
-    
-        fraction = pair.addAsset(account, false, shareOut);
-        
-        vm.stopPrank();
-    }
-
 }
