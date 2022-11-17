@@ -113,8 +113,8 @@ contract KashiBasicTest is BaseTest {
         assertEq(borrowAmount, bentoBox.toAmount(address(usdc), share, true));
 
         // check balance of borrower for asset borrower & withdrawn
-        // todo: checkin on why dust amount didn't follow out (there is 0.05% borrow fee, but that doesn't match up)
-        console.log(usdc.balanceOf(borrower));
+        // todo: checkin on why dust amount didn't follow out (you don't get exact amount borrower and a small unit is included)
+        console2.log(usdc.balanceOf(borrower));
         
         //todo: figure out how to test user's borrow part properly
         //uint256 userBorrowPart = pair.userBorrowPart(borrower);
@@ -125,7 +125,47 @@ contract KashiBasicTest is BaseTest {
         assertEq(pair.userCollateralShare(borrower), bentoBox.toShare(address(sushi), collateralAmount, false));
     }
 
+    function testUserInsolvent() public {
+        uint256 lentAmount = 100 gwei; // 100,000 usdc
+        uint256 collateralAmount = 100000 ether; // 100,000 sushi
+        uint256 borrowAmount = 1 gwei; // 1,000 usdc
 
+        uint256 preOracleSpot = pair.oracle().peekSpot(pair.oracleData());
+
+        // lend
+        address lender = constants.getAddress("mainnet.whale.usdc");
+        _lend(lender, usdc, lentAmount);
+        
+        // add collateral
+        address borrower = constants.getAddress("mainnet.whale.sushi");
+        _addCollateral(borrower, sushi, collateralAmount);
+
+        // borrow and withdraw out of bento
+        (uint256 part, uint256 share) = _borrow(borrower, borrowAmount, true);
+        
+        assertEq(preOracleSpot, pair.exchangeRate());
+        assertEq(borrowAmount, bentoBox.toAmount(address(usdc), share, true));
+
+        // roll ahead 10 blocks
+        advanceBlocks(10);
+
+        // mock oracle exchangeRate change
+        uint256 mockedRate = preOracleSpot * 1000;
+        _mockOracle(mockedRate);
+
+        // try to do another borrow, expect to revert
+        vm.expectRevert(bytes("KashiPair: user insolvent"));
+        pair.borrow(borrower, borrowAmount);
+        vm.clearMockedCalls();
+    }
+
+    function _mockOracle(uint256 mockedRate) private {
+        vm.mockCall(
+            address(pair.oracle()),
+            abi.encodeWithSelector(IOracle.get.selector, pair.oracleData()),
+            abi.encode(true, mockedRate)
+        );
+    }
 
     function _borrow(address account, uint256 amount, bool transferOut) private returns (uint256 part, uint256 share) {
         vm.startPrank(account);
