@@ -21,7 +21,7 @@ contract HelloWorldBento is BaseTest {
         bentoBox = IBentoBoxV1(constants.getAddress("mainnet.bentobox"));
         chainLinkOracle = IOracle(constants.getAddress("mainnet.oracle.chainlinkV2"));
 
-        console2.log(address(chainLinkOracle));
+        //console2.log(address(chainLinkOracle));
         
         sushi = ERC20(constants.getAddress("mainnet.sushi"));
         usdc = ERC20(constants.getAddress("mainnet.usdc"));
@@ -32,11 +32,11 @@ contract HelloWorldBento is BaseTest {
             1000000
         );
 
-        console2.logBytes(sushiUsdcOracleData);
+        //console2.logBytes(sushiUsdcOracleData);
 
         uint256 usdcSushiRate = chainLinkOracle.peekSpot(sushiUsdcOracleData);
 
-        console2.log(usdcSushiRate);
+        //console2.log(usdcSushiRate);
 
         address sushiWhale = 0xcBE6B83e77cdc011Cc18F6f0Df8444E5783ed982;
         vm.startPrank(sushiWhale);

@@ -27,7 +27,7 @@ contract Constants {
         setAddress("mainnet.whale.usdc", 0x55FE002aefF02F77364de339a1292923A15844B8);
 
         setAddress("mainnet.kashiV1.usdc.sushi", 0x263716dEe5b74C5Baed665Cb19c6017e51296fa2);
-
+        setAddress("mainnet.kashiV1.swapperV1", 0x1766733112408b95239aD1951925567CB1203084);
         // Optimism
 
 

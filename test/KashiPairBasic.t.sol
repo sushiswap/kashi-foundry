@@ -22,13 +22,13 @@ contract KashiBasicTest is BaseTest {
         forkMainnet(15973087);
         super.setUp();
 
-        KashiPairScript script = new KashiPairScript();
-        script.setTesting(true);
-        masterContract = script.run();
-
         bentoBox = IBentoBoxV1(constants.getAddress("mainnet.bentobox"));
         sushi = ERC20(constants.getAddress("mainnet.sushi"));
         usdc = ERC20(constants.getAddress("mainnet.usdc"));
+
+        KashiPairScript script = new KashiPairScript();
+        script.setTesting(true);
+        masterContract = script.run(bentoBox.owner());
 
         //todo: can throw this in the utils/KashiPairLib and compute on fly probably
         bytes memory sushiUsdcOracleData = abi.encode(
@@ -47,6 +47,8 @@ contract KashiBasicTest is BaseTest {
             IOracle(constants.getAddress("mainnet.oracle.chainlinkV2")),
             sushiUsdcOracleData
         );
+        masterContract.setSwapper(ISwapper(constants.getAddress("mainnet.kashiV1.swapperV1")), true);
+        masterContract.setFeeTo(bentoBox.owner());
 
         vm.stopPrank();
 
@@ -107,14 +109,14 @@ contract KashiBasicTest is BaseTest {
         _addCollateral(borrower, sushi, collateralAmount);
 
         // borrow and withdraw out of bento
-        (uint256 part, uint256 share) = _borrow(borrower, borrowAmount, true);
+        ( , uint256 share) = _borrow(borrower, borrowAmount, true);
         
         assertEq(preOracleSpot, pair.exchangeRate());
         assertEq(borrowAmount, bentoBox.toAmount(address(usdc), share, true));
 
         // check balance of borrower for asset borrower & withdrawn
         // todo: checkin on why dust amount didn't follow out (you don't get exact amount borrower and a small unit is included)
-        console2.log(usdc.balanceOf(borrower));
+        //console2.log(usdc.balanceOf(borrower));
         
         //todo: figure out how to test user's borrow part properly
         //uint256 userBorrowPart = pair.userBorrowPart(borrower);
@@ -141,10 +143,7 @@ contract KashiBasicTest is BaseTest {
         _addCollateral(borrower, sushi, collateralAmount);
 
         // borrow and withdraw out of bento
-        (uint256 part, uint256 share) = _borrow(borrower, borrowAmount, true);
-        
-        assertEq(preOracleSpot, pair.exchangeRate());
-        assertEq(borrowAmount, bentoBox.toAmount(address(usdc), share, true));
+        //(uint256 part, uint256 share) = _borrow(borrower, borrowAmount, true);
 
         // roll ahead 10 blocks
         advanceBlocks(10);
@@ -155,9 +154,48 @@ contract KashiBasicTest is BaseTest {
 
         // try to do another borrow, expect to revert
         vm.expectRevert(bytes("KashiPair: user insolvent"));
+        vm.prank(borrower);
         pair.borrow(borrower, borrowAmount);
         vm.clearMockedCalls();
     }
+
+    function testOpenLiquidation() public {
+        uint256 lentAmount = 100 gwei; // 100,000 usdc
+        uint256 collateralAmount = 1000 ether; // 1000 sushi
+        uint256 borrowAmount = (7 gwei / 10); // 700 usdc
+
+        uint256 preOracleSpot = pair.oracle().peekSpot(pair.oracleData());
+
+        // lend
+        address lender = constants.getAddress("mainnet.whale.usdc");
+        _lend(lender, usdc, lentAmount);
+        
+        // add collateral
+        address borrower = constants.getAddress("mainnet.whale.sushi");
+        _addCollateral(borrower, sushi, collateralAmount);
+
+        // borrow and withdraw out of bento
+        _borrow(borrower, borrowAmount, true);
+        
+        // roll ahead 10 blocks
+        advanceBlocks(10);
+
+        // mock oracle exchangeRate change
+        uint256 mockedRate = preOracleSpot + (preOracleSpot * 3500) / 10000; // move rate by 35%
+        _mockOracle(mockedRate);
+        pair.updateExchangeRate();
+
+        // liquidate borrower
+        vm.prank(alice);
+        address swapper = constants.getAddress("mainnet.kashiV1.swapperV1");
+        address[] memory liquidateDem = new address[](1);
+        uint256[] memory liquidateParts = new uint256[](1);
+        liquidateDem[0] = borrower;
+        liquidateParts[0] = (5 gwei / 10); // 500 usdc 
+        //todo: figure out how to calculate exact amount to be liquidated
+        pair.liquidate(liquidateDem, liquidateParts, swapper, ISwapper(swapper), false);
+    }
+
 
     function _mockOracle(uint256 mockedRate) private {
         vm.mockCall(

@@ -6,8 +6,8 @@ import "utils/BaseScript.sol";
 import "pairs/KashiPair.sol";
 
 contract KashiPairScript is BaseScript {
-    function run() public returns (KashiPair masterContract) {
-        vm.startBroadcast();
+    function run(address owner) public returns (KashiPair masterContract) {
+        vm.startBroadcast(owner);
 
         masterContract = new KashiPair(
             IBentoBoxV1(constants.getAddress("mainnet.bentobox"))
