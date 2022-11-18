@@ -125,7 +125,8 @@ contract Playground is BaseTest {
             console2.log(string.concat("total collateral amount -> ", Strings.toString(bentoBox.toAmount(address(xSushi), pair.userCollateralShare(userList[i]), false))));
             //console2.log(string.concat("total collateral amount -> ", Strings.toString(bentoBox.toAmount(address(xSushi), pair.userCollateralShare(userList[i]), false)), ' xSushi'));
             console2.log(string.concat("total borrow part -> ", Strings.toString(pair.userBorrowPart(userList[i]))));
-            console2.log(string.concat("total borrow amount -> ", Strings.toString(pair.userBorrowPart(userList[i]) * totalBorrowAmount * 1e18 / baseBorrow)));
+            console2.log(string.concat("total borrow amount -> ", Strings.toString(pair.userBorrowPart(userList[i]) * elasticBorrow / baseBorrow)));
+        
         }
 
 
