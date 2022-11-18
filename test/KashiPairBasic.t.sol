@@ -93,10 +93,10 @@ contract KashiBasicTest is BaseTest {
         assertEq(sharesWithdrawn, shareLent - 1000);
     }
 
-    function testKashiPairBorrow() public {
+    function testKashiPairBorrowRepay() public {
         uint256 lentAmount = 100 gwei; // 100,000 usdc
         uint256 collateralAmount = 100000 ether; // 100,000 sushi
-        uint256 borrowAmount = 1 gwei; // 1,000 usdc
+        uint256 borrowAmount = 2 gwei; // 2,000 usdc
 
         uint256 preOracleSpot = pair.oracle().peekSpot(pair.oracleData());
 
@@ -125,6 +125,10 @@ contract KashiBasicTest is BaseTest {
         assertEq(pair.balanceOf(lender), bentoBox.toShare(address(usdc), lentAmount, false));
         assertEq(pair.totalCollateralShare(), bentoBox.toShare(address(sushi), collateralAmount, false));
         assertEq(pair.userCollateralShare(borrower), bentoBox.toShare(address(sushi), collateralAmount, false));
+
+        // repay 1000 usdc
+        // todo: actually 990 usdc, need to figure out full-proof way to pay back exact amounts
+        uint256 amountRepayed = _repay(borrower, 1 gwei, true);
     }
 
     function testUserInsolvent() public {
@@ -220,6 +224,21 @@ contract KashiBasicTest is BaseTest {
         if (transferOut) {
             bentoBox.withdraw(address(pair.asset()), account, account, 0, share);
         }
+
+        vm.stopPrank();
+    }
+
+    function _repay(address account, uint256 amount, bool transferIn) private returns (uint256 amountRepayed) {
+        vm.startPrank(account);
+
+        if (transferIn) {
+            bentoBox.setMasterContractApproval(account, address(masterContract), true, 0, 0, 0);
+            pair.asset().approve(address(bentoBox), amount);
+            bentoBox.deposit(address(pair.asset()), account, account, amount, 0);    
+        }
+
+        uint256 shareRepay = bentoBox.toShare(address(pair.asset()), amount, false);
+        amountRepayed = pair.repay(account, false, shareRepay);
 
         vm.stopPrank();
     }
