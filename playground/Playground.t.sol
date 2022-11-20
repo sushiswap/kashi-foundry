@@ -22,7 +22,7 @@ contract Playground is BaseTest {
     ERC20 public xSushi;
     
     function test() public {
-        forkMainnet(15997764);
+        forkMainnet(15932563);
         super.setUp();
 
         bentoBox = IBentoBoxV1(constants.getAddress("mainnet.bentobox"));
@@ -41,7 +41,7 @@ contract Playground is BaseTest {
 
 
         // Check Data
-        console2.log('--- Pair Data ---');
+        console2.log(string.concat('--- Pair Data Block ', Strings.toString(block.number), ' ---'));
         console2.log(string.concat("ExchangeRate -> ", Strings.toString(exchangeRate)));
         console2.log(string.concat("elasticAsset -> ", Strings.toString(elasticAsset)));
         console2.log(string.concat("baseAsset -> ", Strings.toString(baseAsset)));
@@ -67,7 +67,8 @@ contract Playground is BaseTest {
         console2.log(string.concat("total asset borrowed -> ", Strings.toString(totalBorrowAmount), ' fei'));
         
         // Check User collateral Amounts
-        address[49] memory userList = [
+        /*address[50] memory userList = [
+            0x95E847D780cb8A609306481E1604Eb2f94334b6e,
             0xF731507F0d5C150905d2004931a56703eD7dFE0E,
             0x224e69025A2f705C8f31EFB6694398f8Fd09ac5C,
             0xB0707a3Ba4D6b16cbc7d197F4061Ec2D1C77b16E,
@@ -127,7 +128,7 @@ contract Playground is BaseTest {
             console2.log(string.concat("total borrow part -> ", Strings.toString(pair.userBorrowPart(userList[i]))));
             console2.log(string.concat("total borrow amount -> ", Strings.toString(pair.userBorrowPart(userList[i]) * elasticBorrow / baseBorrow)));
         
-        }
+        }*/
 
 
     }
