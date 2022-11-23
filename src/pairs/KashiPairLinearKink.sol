@@ -202,17 +202,8 @@ contract KashiPairLinearKink is ERC20, BoringOwnable, IMasterContract {
     uint256 private constant INTEREST_RATE_KINK = 0;
 
     function _computeInterestRate(uint256 utilization) internal pure returns (uint64) {
-        // simple single linear slope first
+        // simple single linear slope interest model
         return uint64(utilization.mul(INTEREST_RATE_SLOPE1) / UTILIZATION_PRECISION);
-
-        /*uint64 interestRate = baseRate;
-
-        if (utilization <= kink) {
-            interestRate += utilization * slope1;
-        } else {
-            interestRate += kink * slope1;
-            interestRate += slope2 * (utilization - kink);
-        }*/
     }
 
 
