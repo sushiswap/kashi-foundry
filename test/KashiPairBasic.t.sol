@@ -117,6 +117,9 @@ contract KashiBasicTest is BaseTest {
         // check balance of borrower for asset borrower & withdrawn
         // todo: checkin on why dust amount didn't follow out (you don't get exact amount borrower and a small unit is included)
         //console2.log(usdc.balanceOf(borrower));
+
+        uint256 userBorrowedAmount = _calculateUserBorrowAmount(borrower);
+        assertEq(userBorrowedAmount, borrowAmount + ((borrowAmount * 50) / 100000));
         
         //todo: figure out how to test user's borrow part properly
         //uint256 userBorrowPart = pair.userBorrowPart(borrower);
@@ -209,12 +212,17 @@ contract KashiBasicTest is BaseTest {
         );
     }
 
+    function _calculateUserBorrowAmount(address user) private view returns (uint256){
+        (uint256 elasticBorrow, uint256 baseBorrow) = pair.totalBorrow();
+        return pair.userBorrowPart(user) * elasticBorrow / baseBorrow;
+    }
+
     function _borrow(address account, uint256 amount, bool transferOut) private returns (uint256 part, uint256 share) {
         vm.startPrank(account);
 
         uint256 borrowShare = bentoBox.toShare(address(pair.asset()), amount, false);
-        (uint128 baseAsset, ) = pair.totalAsset();
-        uint128 diff = baseAsset - uint128(borrowShare);
+        (uint128 elasticAsset, ) = pair.totalAsset();
+        uint128 diff = elasticAsset - uint128(borrowShare);
         if (diff < 1000) {
             amount -= 1000;
         }
